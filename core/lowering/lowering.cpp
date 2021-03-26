@@ -37,6 +37,7 @@ void LowerGraph(std::shared_ptr<torch::jit::Graph>& g) {
   passes::RemoveContiguous(g);
   passes::RemoveDropout(g);
   passes::LinearToAddMM(g);
+  passes::Conv1DToConv2D(g);
   passes::Conv2DToConvolution(g);
   passes::Conv3DToConvolution(g);
   passes::FuseAddMMBranches(g);

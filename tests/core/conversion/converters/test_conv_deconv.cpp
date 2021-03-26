@@ -205,8 +205,8 @@ TEST(Converters, ATenConvolutionWithPaddingConvertsCorrectly) {
 TEST(Converters, ATenConvolution1dConvertsCorrectly) {
   const auto graph = R"IR(
       graph(%0 : Tensor,
-            %1 : Float(32:81, 3:27, 3:9, 3:3, 3:1),
-            %2 : Float(32:1)):
+            %1 : Float(32, 3, 3, 3, 3, strides=[81, 27, 9, 3, 1]),
+            %2 : Float(32)):
         %sv : int = prim::Constant[value=1]()
         %s : int[] = prim::ListConstruct(%sv, %sv, %sv)
         %pv : int = prim::Constant[value=0]()

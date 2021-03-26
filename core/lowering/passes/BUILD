@@ -13,6 +13,7 @@ cc_library(
         "passes.h",
     ],
     srcs = [
+        "1d_to_2d.cpp",
         "conv2d_to_convolution.cpp",
         "conv3d_to_convolution.cpp",
         "exception_elimination.cpp",
