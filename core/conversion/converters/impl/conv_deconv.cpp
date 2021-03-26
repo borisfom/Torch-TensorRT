@@ -12,7 +12,7 @@ namespace {
 
 bool add_conv_deconv(ConversionCtx* ctx, const torch::jit::Node* n, args& args) {
   auto in = args[0].ITensor(); // assumes non-static input Tensor
-  auto w = Weights(ctx, args[1].unwrapToTensor());
+  auto w =  Weights(ctx, args[1].unwrapToTensor());
   auto stride = util::toDims(args[3].unwrapToIntList());
   LOG_DEBUG("stride: " << stride);
   auto padding = util::toDims(args[4].unwrapToIntList());

@@ -123,13 +123,15 @@ namespace {
     graph(%input, %weight, %bias, %stride:int[], %padding:int[], %dilation:int[], %groups:int):
         %zero : int = prim::Constant[value=0]()
         %one : int = prim::Constant[value=1]()
+        %two : int = prim::Constant[value=2]()
+        %three : int = prim::Constant[value=3]()
         %stride_w : int = prim::ListUnpack(%stride)
         %stride_2d : int[] = prim::ListConstruct(%one, %stride_w)
         %padding_w : int = prim::ListUnpack(%padding)
         %padding_2d : int[] = prim::ListConstruct(%zero, %padding_w)
         %dilation_w : int = prim::ListUnpack(%dilation)
         %dilation_2d : int[] = prim::ListConstruct(%one, %dilation_w)
-        %three : int = prim::Constant[value=3]()
+
         %input_2d : Tensor = aten::unsqueeze(%input, %three)
         %weight_2d : Tensor = aten::unsqueeze(%weight, %three)
         %output_2d = aten::conv2d(
