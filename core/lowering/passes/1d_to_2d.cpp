@@ -124,25 +124,19 @@ namespace {
         %zero : int = prim::Constant[value=0]()
         %one : int = prim::Constant[value=1]()
         %two : int = prim::Constant[value=2]()
-
+        %three : int = prim::Constant[value=3]()
+        %stride_w : int = prim::ListUnpack(%stride)
         %stride_2d : int[] = prim::ListConstruct(%one, %stride)
+        %padding_w : int = prim::ListUnpack(%padding)
         %padding_2d : int[] = prim::ListConstruct(%zero, %padding)
+        %dilation_w : int = prim::ListUnpack(%dilation)
         %dilation_2d : int[] = prim::ListConstruct(%one, %dilation)
 
-        %dim0 : int = aten::sizes(%input)
-        %dim_2d : int[] = prim::ListConstruct(%dim0, %one)
-        %input_2d : Tensor = aten::view(%input, %dim_2d)
-        %wdim0 : int = aten::sizes(%weight)
-        %wdim_2d : int[] = prim::ListConstruct(%wdim0, %one)
-        %weight_2d : Tensor = aten::view(%weight, %wdim_2d)
-
+        %input_2d : Tensor = aten::unsqueeze(%input, %three)
+        %weight_2d : Tensor = aten::unsqueeze(%weight, %three)
         %output_2d = aten::conv2d(
             %input_2d, %weight_2d, %bias, %stride_2d, %padding_2d, %dilation_2d, %groups)
-        %odim0 : int = aten::size(%output_2d, %zero)
-        %odim1 : int = aten::size(%output_2d, %one)
-        %odim2 : int = aten::size(%output_2d, %two)
-        %odim  : int[] = prim::ListConstruct(%odim0, %odim1, %odim2) 
-        %output : Tensor = aten::view(%output_2d, %odim)
+        %output : Tensor = aten::squeeze(%output_2d, %three)
         return (%output) )IR";
 
       torch::jit::SubgraphRewriter rewriter;
@@ -164,7 +158,7 @@ namespace {
         %three : int = prim::Constant[value=3]()
         %input_2d : Tensor = aten::unsqueeze(%input, %three)
         %size_2d : int[] = prim::ListConstruct(%size, %one)
-        %r_2d = aten::adaptive_avg_pool2d(%input, %size)
+        %r_2d = aten::adaptive_avg_pool2d(%input_2d, %size_2d)
         %r : Tensor = aten::squeeze(%r_2d, %one)
         return (%r) )IR";
       torch::jit::SubgraphRewriter rewriter;
