@@ -17,9 +17,13 @@ struct Weights {
 
   Weights();
   Weights(ConversionCtx* ctx, at::Tensor t);
+  Weights(ConversionCtx* ctx, nvinfer1::ITensor* t);
   Weights(ConversionCtx* ctx, float val);
   Weights(ConversionCtx* ctx, int32_t val);
   friend std::ostream& operator<<(std::ostream& os, const Weights& w);
+
+private:
+    void init(ConversionCtx* ctx,   nvinfer1::Dims dims,  nvinfer1::DataType dtype_optional, void* t_cpu, int numel);
 };
 
 inline nvinfer1::ITensor* tensor_to_const(ConversionCtx* ctx, at::Tensor t) {
