@@ -9,6 +9,7 @@
 #include "torch/csrc/jit/passes/lower_tuples.h"
 #include "torch/csrc/jit/passes/peephole.h"
 #include "torch/csrc/jit/passes/remove_mutation.h"
+#include "torch/csrc/jit/passes/constant_propagation.h"
 
 #include "core/lowering/lowering.h"
 #include "core/lowering/passes/passes.h"
@@ -40,6 +41,7 @@ void LowerGraph(std::shared_ptr<torch::jit::Graph>& g) {
   passes::Conv1DToConv2D(g);
   passes::Conv2DToConvolution(g);
   passes::Conv3DToConvolution(g);
+  torch::jit::ConstantPropagation(g);
   passes::FuseAddMMBranches(g);
   passes::RemoveBNDimCheck(g);
   torch::jit::EliminateCommonSubexpression(g);
@@ -52,6 +54,7 @@ void LowerGraph(std::shared_ptr<torch::jit::Graph>& g) {
   passes::AliasOperators(g);
   passes::SiluToSigmoidMultipication(g);
   torch::jit::EliminateDeadCode(g);
+  torch::jit::ConstantPropagation(g);
   LOG_GRAPH(*g);
 }
 

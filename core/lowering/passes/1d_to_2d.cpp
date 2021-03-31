@@ -124,19 +124,19 @@ namespace {
         %zero : int = prim::Constant[value=0]()
         %one : int = prim::Constant[value=1]()
         %two : int = prim::Constant[value=2]()
-        %three : int = prim::Constant[value=3]()
+        %three : int = prim::Constant[value=-1]()
         %stride_w : int = prim::ListUnpack(%stride)
-        %stride_2d : int[] = prim::ListConstruct(%one, %stride)
+        %stride_2d : int[] = prim::ListConstruct(%stride_w, %one)
         %padding_w : int = prim::ListUnpack(%padding)
-        %padding_2d : int[] = prim::ListConstruct(%zero, %padding)
+        %padding_2d : int[] = prim::ListConstruct(%padding_w, %zero)
         %dilation_w : int = prim::ListUnpack(%dilation)
-        %dilation_2d : int[] = prim::ListConstruct(%one, %dilation)
+        %dilation_2d : int[] = prim::ListConstruct(%dilation_w, %one)
 
         %input_2d : Tensor = aten::unsqueeze(%input, %three)
         %weight_2d : Tensor = aten::unsqueeze(%weight, %three)
         %output_2d = aten::conv2d(
             %input_2d, %weight_2d, %bias, %stride_2d, %padding_2d, %dilation_2d, %groups)
-        %output : Tensor = aten::squeeze(%output_2d, %three)
+        %output : Tensor = aten::squeeze(%output_2d, %zero)
         return (%output) )IR";
 
       torch::jit::SubgraphRewriter rewriter;
@@ -157,9 +157,10 @@ namespace {
         %one : int = prim::Constant[value=1]()
         %three : int = prim::Constant[value=3]()
         %input_2d : Tensor = aten::unsqueeze(%input, %three)
-        %size_2d : int[] = prim::ListConstruct(%size, %one)
+        %size_w : int = prim::ListUnpack(%size)
+        %size_2d : int[] = prim::ListConstruct(%size_w, %one)
         %r_2d = aten::adaptive_avg_pool2d(%input_2d, %size_2d)
-        %r : Tensor = aten::squeeze(%r_2d, %one)
+        %r : Tensor = aten::squeeze(%r_2d, %three)
         return (%r) )IR";
       torch::jit::SubgraphRewriter rewriter;
       rewriter.RegisterRewritePattern(pooling_1d_pattern, pooling_2d_pattern);
@@ -170,10 +171,10 @@ namespace {
   
   void Conv1DToConv2D(std::shared_ptr<torch::jit::Graph>& graph) {
     // Replace _convolution with conv1d and conv2d
-    replaceConvolutionWithAtenConv1d(graph);
-    replaceConv1dWithConv2d(graph);
+    // replaceConvolutionWithAtenConv1d(graph);
+    // replaceConv1dWithConv2d(graph);
     AdaptivePooling1DToPooling2D(graph);
-    LOG_GRAPH("Post map conv1d -> conv2d: " << *graph);
+    // LOG_GRAPH("Post map AdaptivePooling1D -> Pooling2D: " << *graph);
   }
 
 

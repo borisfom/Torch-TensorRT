@@ -121,15 +121,6 @@ Weights::Weights(ConversionCtx* ctx, at::Tensor t) {
     init(ctx, dims, dtype_optional.value(), t_cpu.data_ptr(), t_cpu.numel());
 }
 
-Weights::Weights(ConversionCtx* ctx, nvinfer1::ITensor* t) {
-    auto dims = t->getDimensions();
-    nvinfer1::TensorLocation loc = t->getLocation();
-    auto dtype_optional = t->getType();
-    if (!dtype_optional) {
-        TRTORCH_THROW_ERROR("The tensor requested to be converted to nvinfer1::Weights is of an unsupported type");
-    }
-    init(ctx, dims, dtype_optional.value(), t->data_ptr(), t_cpu.numel());
-}
 // clang-format off
 std::ostream& operator<<(std::ostream& os, const Weights& w) {
   os << "Weights: " << w.shape

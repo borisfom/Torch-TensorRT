@@ -2,6 +2,7 @@
 
 #include "core/conversion/converters/converters.h"
 #include "core/util/prelude.h"
+#include "core/conversion/converters/ShapeTensor.h"
 
 namespace trtorch {
 namespace core {
@@ -9,34 +10,65 @@ namespace conversion {
 namespace converters {
 namespace impl {
 namespace {
-
+  
+  
 bool add_conv_deconv(ConversionCtx* ctx, const torch::jit::Node* n, args& args) {
   auto in = args[0].ITensor(); // assumes non-static input Tensor
   auto w =  Weights(ctx, args[1].unwrapToTensor());
   auto stride = util::toDims(args[3].unwrapToIntList());
-  LOG_DEBUG("stride: " << stride);
   auto padding = util::toDims(args[4].unwrapToIntList());
-  LOG_DEBUG("padding: " << padding);
   auto dilation = util::toDims(args[5].unwrapToIntList());
-  LOG_DEBUG("dilation: " << dilation);
   bool transposed = args[6].unwrapToBool();
   auto out_padding = util::toDims(args[7].unwrapToIntList());
-  LOG_DEBUG("out_padding: " << out_padding);
   int64_t groups = args[8].unwrapToInt();
-  LOG_DEBUG("groups: " << groups);
 
+
+  auto dims = in->getDimensions();
+
+  bool needToExpandDims = (dims.nbDims == 3);
+  if (needToExpandDims)
+    {
+      // Expand spatial dims from 1D to 2D
+      std::vector<int> axes{3};
+      auto tensorPtr = unsqueezeTensor(ctx, n, *in, axes);
+      assert(tensorPtr);
+      dims = tensorPtr->getDimensions();
+      in = tensorPtr;
+      stride=insertDimension(stride, 1, 1);
+      dilation=insertDimension(dilation, 1, 1);
+      padding=insertDimension(padding, 1, 0);
+      out_padding=insertDimension(out_padding, 1, 0);
+    }
+  if (w.shape.nbDims == 3)
+    {
+      w.shape.nbDims = 4;
+      w.shape.d[3] = 1;
+      w.kernel_shape.nbDims = 2;
+      w.kernel_shape.d[1] = 1;
+    }
+
+  LOG_DEBUG("stride: " << stride);
+  LOG_DEBUG("padding: " << padding);
+  LOG_DEBUG("dilation: " << dilation);
+  LOG_DEBUG("out_padding: " << out_padding);
+  LOG_DEBUG("groups: " << groups);
+  
+  const int nbSpatialDims = dims.nbDims - 2;
+  // Check that the number of spatial dimensions and the kernel shape matches up.
+  assert(nbSpatialDims == w.shape.nbDims - 2);
+  
   nvinfer1::ILayer* new_layer;
   if (transposed) {
     Weights bias;
     if (args[2].IValue()->isTensor()) {
       bias = Weights(ctx, args[2].unwrapToTensor());
     } else {
-      bias = Weights(ctx, torch::zeros(args[1].unwrapToTensor().sizes()[1] * groups));
+      bias = Weights(ctx, torch::zeros(w.shape.d[1] * groups));
     }
 
     // shape of deconvolution's weight: [in, out/groups, ...]
     auto deconv = ctx->net->addDeconvolutionNd(
-        *in, args[1].unwrapToTensor().sizes()[1] * groups, w.kernel_shape, w.data, bias.data);
+        *in, w.shape.d[1] * groups, w.kernel_shape, w.data, bias.data);
     TRTORCH_CHECK(deconv, "Unable to create deconvolution layer from node: " << *n);
 
     deconv->setStrideNd(stride);
@@ -56,11 +88,11 @@ bool add_conv_deconv(ConversionCtx* ctx, const torch::jit::Node* n, args& args) 
     if (args[2].IValue()->isTensor()) {
       bias = Weights(ctx, args[2].unwrapToTensor());
     } else {
-      bias = Weights(ctx, torch::zeros(args[1].unwrapToTensor().sizes()[0]));
+      bias = Weights(ctx, torch::zeros(w.shape.d[0]));
     }
 
     // shape of convolution's weight: [out, in/groups, ...]
-    auto conv = ctx->net->addConvolutionNd(*in, args[1].unwrapToTensor().sizes()[0], w.kernel_shape, w.data, bias.data);
+    auto conv = ctx->net->addConvolutionNd(*in, w.shape.d[0], w.kernel_shape, w.data, bias.data);
     TRTORCH_CHECK(conv, "Unable to create convolution layer from node: " << *n);
 
     conv->setStrideNd(stride);
@@ -77,6 +109,13 @@ bool add_conv_deconv(ConversionCtx* ctx, const torch::jit::Node* n, args& args) 
 
   LOG_DEBUG("Output tensor shape: " << out->getDimensions());
 
+    if (needToExpandDims)
+    {
+        // Un-expand spatial dims back to 1D
+        std::vector<int> axes{3};
+        auto new_out = squeezeTensor(ctx, n, *out, axes);
+        assert(new_out);
+    }
   return true;
 }
 
