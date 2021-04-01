@@ -7,8 +7,6 @@ namespace core {
 namespace lowering {
 namespace passes {
 
-void Conv1DToConv2D(std::shared_ptr<torch::jit::Graph>& graph);
-void AdaptivePooling1DToPooling2D(std::shared_ptr<torch::jit::Graph>& graph);
 void Conv2DToConvolution(std::shared_ptr<torch::jit::Graph>& graph);
 void Conv3DToConvolution(std::shared_ptr<torch::jit::Graph>& graph);
 void FuseAddMMBranches(std::shared_ptr<torch::jit::Graph> graph);

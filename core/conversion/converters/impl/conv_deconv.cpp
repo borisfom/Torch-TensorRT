@@ -24,13 +24,14 @@ bool add_conv_deconv(ConversionCtx* ctx, const torch::jit::Node* n, args& args) 
 
 
   auto dims = in->getDimensions();
+  LOG_DEBUG("Original input dims: " << dims);
 
   bool needToExpandDims = (dims.nbDims == 3);
   if (needToExpandDims)
     {
       // Expand spatial dims from 1D to 2D
       std::vector<int> axes{3};
-      auto tensorPtr = unsqueezeTensor(ctx, n, *in, axes);
+      auto tensorPtr = unsqueezeTensor(ctx, *in, axes)->getOutput(0);
       assert(tensorPtr);
       dims = tensorPtr->getDimensions();
       in = tensorPtr;
@@ -46,6 +47,7 @@ bool add_conv_deconv(ConversionCtx* ctx, const torch::jit::Node* n, args& args) 
       w.kernel_shape.nbDims = 2;
       w.kernel_shape.d[1] = 1;
     }
+  LOG_DEBUG("Input dims: " << dims);
 
   LOG_DEBUG("stride: " << stride);
   LOG_DEBUG("padding: " << padding);
@@ -105,18 +107,19 @@ bool add_conv_deconv(ConversionCtx* ctx, const torch::jit::Node* n, args& args) 
   }
   new_layer->setName(util::node_info(n).c_str());
 
-  auto out = ctx->AssociateValueAndTensor(n->outputs()[0], new_layer->getOutput(0));
-
-  LOG_DEBUG("Output tensor shape: " << out->getDimensions());
-
     if (needToExpandDims)
     {
         // Un-expand spatial dims back to 1D
         std::vector<int> axes{3};
-        auto new_out = squeezeTensor(ctx, n, *out, axes);
-        assert(new_out);
+        new_layer = squeezeTensor(ctx, *new_layer->getOutput(0), axes);
+        assert(new_layer);
     }
-  return true;
+
+    auto out = ctx->AssociateValueAndTensor(n->outputs()[0], new_layer->getOutput(0));
+
+    LOG_DEBUG("Output tensor shape: " << out->getDimensions());
+
+    return true;
 }
 
 auto conv_registrations TRTORCH_UNUSED = RegisterNodeConversionPatterns()
