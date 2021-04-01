@@ -41,11 +41,9 @@ auto batch_norm_registrations TRTORCH_UNUSED = RegisterNodeConversionPatterns().
       LOG_DEBUG("training disregarded");
       LOG_DEBUG("cudnn disregarded");
 
-      auto should_unpack = util::toVec(orig_shape).size() < 4;
-      if (should_unpack) {
-        // expand spatial dims from 1D to 2D
-          std::vector<int> axes{3};
-          input = unsqueezeTensor(ctx, *input, axes)->getOutput(0);
+      auto expandDims =  unsqueezeTensor(ctx, input);
+      if (expandDims) {
+          input = expandDims->getOutput(0);
       }
 
       auto scale = gamma / torch::sqrt(var + eps);
@@ -60,13 +58,12 @@ auto batch_norm_registrations TRTORCH_UNUSED = RegisterNodeConversionPatterns().
       bn->setName(util::node_info(n).c_str());
       auto out_tensor = bn->getOutput(0);
 
-      if (should_unpack) {
-        LOG_DEBUG("Inserting shuffle layer to reshape to back to original shape: " << orig_shape);
-          if (should_unpack) {
-              // expand spatial dims from 1D to 2D
-              std::vector<int> axes{3};
-              out_tensor = squeezeTensor(ctx, *out_tensor, axes)->getOutput(0);
-          }
+      if (expandDims) {
+          LOG_DEBUG("Inserting shuffle layer to reshape to back to original shape: " << orig_shape);
+          // expand spatial dims from 1D to 2D
+          auto new_layer = squeezeTensor(ctx, out_tensor);
+          assert(new_layer);
+          out_tensor = new_layer->getOutput(0);
       }
       ctx->AssociateValueAndTensor(n->outputs()[0], out_tensor);
       return true;

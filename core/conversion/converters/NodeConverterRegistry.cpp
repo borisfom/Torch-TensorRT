@@ -137,6 +137,36 @@ RegisterNodeConversionPatterns::RegisterNodeConversionPatterns(RegisterNodeConve
 RegisterNodeConversionPatterns& RegisterNodeConversionPatterns::RegisterNodeConversionPatterns::operator=(
     RegisterNodeConversionPatterns&&) noexcept = default;
 
+    nvinfer1::ILayer* unsqueezeTensor(ConversionCtx* ctx, nvinfer1::ITensor* tensor)
+    {
+        const auto dims = tensor->getDimensions();
+        if (dims.nbDims == 3)
+        {
+            auto newDims = util::unsqueezeDims(dims, 3);
+            LOG_GRAPH("Original shape: " << dims << ", unsqueezing to: " << newDims);
+            auto shuffle_layer = ctx->net->addShuffle(*tensor);
+            TRTORCH_CHECK(shuffle_layer, "Unable to create shuffle layer");
+            shuffle_layer->setReshapeDimensions(newDims);
+            return shuffle_layer;
+        } else
+            return nullptr;
+    }
+
+    nvinfer1::ILayer* squeezeTensor(ConversionCtx* ctx, nvinfer1::ITensor* tensor)
+    {
+        const auto dims = tensor->getDimensions();
+        if (dims.nbDims == 4)
+        {
+            auto newDims = util::squeezeDims(dims, 3);
+            LOG_GRAPH("Original shape: " << dims << ", squeezing to: " << newDims);
+            auto shuffle_layer = ctx->net->addShuffle(*tensor);
+            TRTORCH_CHECK(shuffle_layer, "Unable to create shuffle layer");
+            shuffle_layer->setReshapeDimensions(newDims);
+            return shuffle_layer;
+        } else
+            return nullptr;
+    }
+
 } // namespace converters
 } // namespace conversion
 } // namespace core

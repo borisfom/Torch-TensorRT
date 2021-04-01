@@ -1,8 +1,6 @@
 #include "torch/torch.h"
-
 #include "core/conversion/converters/converters.h"
 #include "core/util/prelude.h"
-#include "core/conversion/converters/ShapeTensor.h"
 
 namespace trtorch {
 namespace core {
@@ -26,19 +24,18 @@ bool add_conv_deconv(ConversionCtx* ctx, const torch::jit::Node* n, args& args) 
   auto dims = in->getDimensions();
   LOG_DEBUG("Original input dims: " << dims);
 
-  bool needToExpandDims = (dims.nbDims == 3);
-  if (needToExpandDims)
+  // Expand spatial dims from 1D to 2D
+  auto expandDims = unsqueezeTensor(ctx, in);
+  if (expandDims)
     {
-      // Expand spatial dims from 1D to 2D
-      std::vector<int> axes{3};
-      auto tensorPtr = unsqueezeTensor(ctx, *in, axes)->getOutput(0);
+      auto tensorPtr = expandDims->getOutput(0);
       assert(tensorPtr);
       dims = tensorPtr->getDimensions();
       in = tensorPtr;
-      stride=insertDimension(stride, 1, 1);
-      dilation=insertDimension(dilation, 1, 1);
-      padding=insertDimension(padding, 1, 0);
-      out_padding=insertDimension(out_padding, 1, 0);
+      stride=util::unsqueezeDims(stride, 1, 1);
+      dilation=util::unsqueezeDims(dilation, 1, 1);
+      padding=util::unsqueezeDims(padding, 1, 0);
+      out_padding=util::unsqueezeDims(out_padding, 1, 0);
     }
   if (w.shape.nbDims == 3)
     {
@@ -107,11 +104,10 @@ bool add_conv_deconv(ConversionCtx* ctx, const torch::jit::Node* n, args& args) 
   }
   new_layer->setName(util::node_info(n).c_str());
 
-    if (needToExpandDims)
+    if (expandDims)
     {
         // Un-expand spatial dims back to 1D
-        std::vector<int> axes{3};
-        new_layer = squeezeTensor(ctx, *new_layer->getOutput(0), axes);
+        new_layer = squeezeTensor(ctx, new_layer->getOutput(0));
         assert(new_layer);
     }
 

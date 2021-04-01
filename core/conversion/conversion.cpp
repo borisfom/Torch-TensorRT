@@ -9,6 +9,7 @@
 
 #include "c10/util/intrusive_ptr.h"
 #include "core/conversion/tensorcontainer/TensorContainer.h"
+#include "core/conversion/converters/ShapeTensor.h"
 
 namespace trtorch {
 namespace core {
@@ -491,6 +492,8 @@ bool VerifyConverterSupportForBlock(const torch::jit::Block* b) {
   }
 }
 
+
+  
 } // namespace conversion
 } // namespace core
 } // namespace trtorch

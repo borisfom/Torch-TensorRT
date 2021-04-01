@@ -41,6 +41,9 @@ bool node_is_convertable(const torch::jit::Node* n);
 OpConverter get_node_converter_for(const torch::jit::FunctionSchema* signature);
 std::vector<std::string> get_converter_list();
 
+nvinfer1::ILayer* squeezeTensor(ConversionCtx* ctx, nvinfer1::ITensor* tensor);
+nvinfer1::ILayer* unsqueezeTensor(ConversionCtx* ctx, nvinfer1::ITensor* tensor);
+
 } // namespace converters
 } // namespace conversion
 } // namespace core
