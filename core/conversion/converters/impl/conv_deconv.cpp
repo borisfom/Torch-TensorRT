@@ -1,7 +1,7 @@
-#include "torch/torch.h"
-#include "core/conversion/converters/converters.h"
 #include "core/conversion/converters/converter_util.h"
+#include "core/conversion/converters/converters.h"
 #include "core/util/prelude.h"
+#include "torch/torch.h"
 
 namespace trtorch {
 namespace core {
@@ -9,11 +9,10 @@ namespace conversion {
 namespace converters {
 namespace impl {
 namespace {
-  
-  
+
 bool add_conv_deconv(ConversionCtx* ctx, const torch::jit::Node* n, args& args) {
   auto in = args[0].ITensor(); // assumes non-static input Tensor
-  auto w =  Weights(ctx, args[1].unwrapToTensor());
+  auto w = Weights(ctx, args[1].unwrapToTensor());
   auto stride = util::toDims(args[3].unwrapToIntList());
   auto padding = util::toDims(args[4].unwrapToIntList());
   auto dilation = util::toDims(args[5].unwrapToIntList());
@@ -21,32 +20,29 @@ bool add_conv_deconv(ConversionCtx* ctx, const torch::jit::Node* n, args& args) 
   auto out_padding = util::toDims(args[7].unwrapToIntList());
   int64_t groups = args[8].unwrapToInt();
 
-
   auto dims = in->getDimensions();
   auto orig_dims = dims;
   LOG_DEBUG("Original input dims: " << orig_dims);
 
   // Expand spatial dims from 1D to 2D if needed
   auto expandDims = util::padTensorDim(ctx, n, in, 4);
-  if (expandDims)
-    {
-      auto tensorPtr = expandDims->getOutput(0);
-      assert(tensorPtr);
-      dims = tensorPtr->getDimensions();
-      in = tensorPtr;
-      stride=util::unsqueezeDims(stride, 1, 1);
-      dilation=util::unsqueezeDims(dilation, 1, 1);
-      padding=util::unsqueezeDims(padding, 1, 0);
-      out_padding=util::unsqueezeDims(out_padding, 1, 0);
-    }
-  if (w.shape.nbDims < 4)
-    {
-      for (int i = w.shape.nbDims; i <4 ; ++i) 
-	w.shape.d[i] = 1;
-      w.shape.nbDims = 4;
-      w.kernel_shape.nbDims = 2;
-      w.kernel_shape.d[1] = 1;
-    }
+  if (expandDims) {
+    auto tensorPtr = expandDims->getOutput(0);
+    assert(tensorPtr);
+    dims = tensorPtr->getDimensions();
+    in = tensorPtr;
+    stride = util::unsqueezeDims(stride, 1, 1);
+    dilation = util::unsqueezeDims(dilation, 1, 1);
+    padding = util::unsqueezeDims(padding, 1, 0);
+    out_padding = util::unsqueezeDims(out_padding, 1, 0);
+  }
+  if (w.shape.nbDims < 4) {
+    for (int i = w.shape.nbDims; i < 4; ++i)
+      w.shape.d[i] = 1;
+    w.shape.nbDims = 4;
+    w.kernel_shape.nbDims = 2;
+    w.kernel_shape.d[1] = 1;
+  }
   LOG_DEBUG("Input dims: " << dims);
   LOG_DEBUG("Weights: " << w);
   LOG_DEBUG("stride: " << stride);
@@ -54,11 +50,11 @@ bool add_conv_deconv(ConversionCtx* ctx, const torch::jit::Node* n, args& args) 
   LOG_DEBUG("dilation: " << dilation);
   LOG_DEBUG("out_padding: " << out_padding);
   LOG_DEBUG("groups: " << groups);
-  
+
   const int nbSpatialDims = dims.nbDims - 2;
   // Check that the number of spatial dimensions and the kernel shape matches up.
   assert(nbSpatialDims == w.shape.nbDims - 2);
-  
+
   nvinfer1::ILayer* new_layer;
   if (transposed) {
     Weights bias;
@@ -69,8 +65,7 @@ bool add_conv_deconv(ConversionCtx* ctx, const torch::jit::Node* n, args& args) 
     }
 
     // shape of deconvolution's weight: [in, out/groups, ...]
-    auto deconv = ctx->net->addDeconvolutionNd(
-        *in, w.shape.d[1] * groups, w.kernel_shape, w.data, bias.data);
+    auto deconv = ctx->net->addDeconvolutionNd(*in, w.shape.d[1] * groups, w.kernel_shape, w.data, bias.data);
     TRTORCH_CHECK(deconv, "Unable to create deconvolution layer from node: " << *n);
 
     deconv->setStrideNd(stride);
@@ -107,19 +102,18 @@ bool add_conv_deconv(ConversionCtx* ctx, const torch::jit::Node* n, args& args) 
   }
   new_layer->setName(util::node_info(n).c_str());
 
-    if (expandDims)
-    {
-        // Un-expand spatial dims back to 1D
-      auto unpad_layer = util::unpadTensorDim(ctx, n, new_layer->getOutput(0), orig_dims.nbDims);
-      if (unpad_layer)
-          new_layer = unpad_layer;
-    }
+  if (expandDims) {
+    // Un-expand spatial dims back to 1D
+    auto unpad_layer = util::unpadTensorDim(ctx, n, new_layer->getOutput(0), orig_dims.nbDims);
+    if (unpad_layer)
+      new_layer = unpad_layer;
+  }
 
-    auto out = ctx->AssociateValueAndTensor(n->outputs()[0], new_layer->getOutput(0));
+  auto out = ctx->AssociateValueAndTensor(n->outputs()[0], new_layer->getOutput(0));
 
-    LOG_DEBUG("Output tensor shape: " << out->getDimensions());
+  LOG_DEBUG("Output tensor shape: " << out->getDimensions());
 
-    return true;
+  return true;
 }
 
 auto conv_registrations TRTORCH_UNUSED = RegisterNodeConversionPatterns()

@@ -3,25 +3,24 @@ workspace(name = "TRTorch")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 
-git_repository(
-    name = "rules_python",
-    remote = "https://github.com/bazelbuild/rules_python.git",
-    commit = "4fcc24fd8a850bdab2ef2e078b1de337eea751a6",
-    shallow_since = "1589292086 -0400"
-)
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+http_archive(
+        name = "rules_python",
+        url = "https://github.com/bazelbuild/rules_python/releases/download/0.2.0/rules_python-0.2.0.tar.gz",
+        sha256 = "778197e26c5fbeb07ac2a2c5ae405b30f6cb7ad1f5510ea6fdac03bded96cc6f",
+    )
 
-load("@rules_python//python:repositories.bzl", "py_repositories")
-py_repositories()
+load("@rules_python//python:pip.bzl", "pip_install")
 
-load("@rules_python//python:pip.bzl", "pip_repositories", "pip3_import")
-pip_repositories()
-
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 http_archive(
     name = "rules_pkg",
-    url = "https://github.com/bazelbuild/rules_pkg/releases/download/0.2.4/rules_pkg-0.2.4.tar.gz",
-    sha256 = "4ba8f4ab0ff85f2484287ab06c0d871dcb31cc54d439457d28fd4ae14b18450a",
+    urls = [
+    	"https://mirror.bazel.build/github.com/bazelbuild/rules_pkg/releases/download/0.4.0/rules_pkg-0.4.0.tar.gz",
+	"https://github.com/bazelbuild/rules_pkg/releases/download/0.4.0/rules_pkg-0.4.0.tar.gz",
+    ],
+    sha256 = "038f1caa773a7e35b3663865ffb003169c6a71dc995e39bf4815792f385d837d",
 )
-
 load("@rules_pkg//:deps.bzl", "rules_pkg_dependencies")
 rules_pkg_dependencies()
 
@@ -35,7 +34,7 @@ git_repository(
 # CUDA should be installed on the system locally
 new_local_repository(
     name = "cuda",
-    path = "/usr/local/cuda/",
+    path = "/usr/local/cuda",
     build_file = "@//third_party/cuda:BUILD",
 )
 
@@ -71,7 +70,8 @@ http_archive(
 
 #http_archive(
 #    name = "cudnn",
-#    urls = ["https://developer.nvidia.com/compute/machine-learning/cudnn/secure/8.1.1.33/11.2_20210301/cudnn-11.2-linux-x64-v8.1.1.33.tgz",],
+#    urls = ["file:///home/boris/git/TRTorch/third_party/dist_dir/x86_64-linux-gnu/cudnn-11.2-linux-x64-v8.1.1.33.tgz",],
+#    # "https://developer.nvidia.com/compute/machine-learning/cudnn/secure/8.1.1.33/11.2_20210301/cudnn-11.2-linux-x64-v8.1.1.33.tgz",],
 #    build_file = "@//third_party/cudnn/archive:BUILD",
 #    sha256 = "98a8784e92862f20018d20c281b30d4a0cd951f93694f6433ccf4ae9c502ba6a",
 #    strip_prefix = "cuda"
@@ -79,7 +79,8 @@ http_archive(
 
 #http_archive(
 #    name = "tensorrt",
-#    urls = ["https://developer.nvidia.com/compute/machine-learning/tensorrt/secure/7.2.3/tars/TensorRT-7.2.3.4.Ubuntu-18.04.x86_64-gnu.cuda-11.1.cudnn8.1.tar.gz",],
+#    urls = ["file:///home/boris/git/TRTorch/third_party/dist_dir/x86_64-linux-gnu/TensorRT-7.2.3.4.Ubuntu-18.04.x86_64-gnu.cuda-11.1.cudnn8.1.tar.gz"],
+# "https://developer.nvidia.com/compute/machine-learning/tensorrt/secure/7.2.3/tars/TensorRT-7.2.3.4.Ubuntu-18.04.x86_64-gnu.cuda-11.1.cudnn8.1.tar.gz",],
 #    build_file = "@//third_party/tensorrt/archive:BUILD",
 #    strip_prefix = "TensorRT-7.2.3.4",
 #    sha256 = "d3a1f478e304b48878604fac70ce7920fece71f9cac62f925c9c59c197f5d087"
@@ -120,3 +121,23 @@ new_local_repository(
    build_file = "@//third_party/tensorrt/local:BUILD"
 )
 
+#########################################################################
+# Testing Dependencies (optional - comment out on aarch64)
+#########################################################################
+pip_install(
+    name = "trtorch_py_deps",
+    requirements = "//py:requirements.txt",
+    quiet = False,
+)
+
+pip_install(
+    name = "py_test_deps",
+    requirements = "//tests/py:requirements.txt",
+    quiet = False,
+)
+
+pip_install(
+    name = "pylinter_deps",
+    requirements = "//tools/linter:requirements.txt",
+    quiet = False,
+)

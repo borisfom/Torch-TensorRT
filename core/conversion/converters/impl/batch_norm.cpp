@@ -1,7 +1,7 @@
+#include "core/conversion/converters/converter_util.h"
 #include "core/conversion/converters/converters.h"
 #include "core/util/prelude.h"
 #include "torch/torch.h"
-#include "core/conversion/converters/converter_util.h"
 
 namespace trtorch {
 namespace core {
@@ -41,9 +41,9 @@ auto batch_norm_registrations TRTORCH_UNUSED = RegisterNodeConversionPatterns().
       LOG_DEBUG("training disregarded");
       LOG_DEBUG("cudnn disregarded");
 
-      auto expandDims =  util::padTensorDim(ctx, n, input, 4);
+      auto expandDims = util::padTensorDim(ctx, n, input, 4);
       if (expandDims) {
-          input = expandDims->getOutput(0);
+        input = expandDims->getOutput(0);
       }
 
       auto scale = gamma / torch::sqrt(var + eps);
@@ -59,10 +59,10 @@ auto batch_norm_registrations TRTORCH_UNUSED = RegisterNodeConversionPatterns().
       auto out_tensor = bn->getOutput(0);
 
       if (expandDims) {
-          LOG_DEBUG("Inserting shuffle layer to reshape to back to original shape: " << orig_shape);
-          auto new_layer = util::unpadTensorDim(ctx, n, out_tensor, orig_shape.nbDims);
-          assert(new_layer);
-          out_tensor = new_layer->getOutput(0);
+        LOG_DEBUG("Inserting shuffle layer to reshape to back to original shape: " << orig_shape);
+        auto new_layer = util::unpadTensorDim(ctx, n, out_tensor, orig_shape.nbDims);
+        assert(new_layer);
+        out_tensor = new_layer->getOutput(0);
       }
       ctx->AssociateValueAndTensor(n->outputs()[0], out_tensor);
       return true;

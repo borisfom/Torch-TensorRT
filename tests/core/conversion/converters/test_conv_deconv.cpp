@@ -78,7 +78,6 @@ TEST(Converters, ATenConvolutionConvertsCorrectly) {
   ASSERT_TRUE(trtorch::tests::util::almostEqual(jit_results[0], trt, 2e-6));
 }
 
-
 TEST(Converters, ATenConvolution1dConvertsCorrectly) {
   const auto graph = R"IR(
       graph(%0 : Tensor,
