@@ -14,7 +14,7 @@ bool AdaptiveAvgPoolingConverter(ConversionCtx* ctx, const torch::jit::Node* n, 
   auto in = args[0].ITensorOrFreeze(ctx);
   auto out_size = util::toVec(util::toDims(args[1].unwrapToIntList()));
   bool shuffle_back = false;
-  auto shuffle = util::padTensorDim(ctx, n, in, 4);
+  auto shuffle = util::padTensorDim(ctx, n, in, 4, true, true);
   if (shuffle) {
     in = shuffle->getOutput(0);
   }
@@ -70,7 +70,7 @@ bool AdaptiveAvgPoolingConverter(ConversionCtx* ctx, const torch::jit::Node* n, 
   new_layer->setName(util::node_info(n).c_str());
 
   if (shuffle_back) {
-    new_layer = util::unpadTensorDim(ctx, n, new_layer->getOutput(0), 3);
+    new_layer = util::unpadTensorDim(ctx, n, new_layer->getOutput(0), 3, true, true);
     assert(new_layer);
   }
 
@@ -85,7 +85,7 @@ bool PoolingConverter(ConversionCtx* ctx, const torch::jit::Node* n, args& args,
   auto shape = util::toVec(in->getDimensions());
 
   // Max Pool needs at least 4D input
-  auto shuffle = util::padTensorDim(ctx, n, in, 4);
+  auto shuffle = util::padTensorDim(ctx, n, in, 4, false, false);
 
   if (shuffle) {
     in = shuffle->getOutput(0);
@@ -94,20 +94,25 @@ bool PoolingConverter(ConversionCtx* ctx, const torch::jit::Node* n, args& args,
   auto kernel_size = util::toDims(args[1].unwrapToIntList());
   auto padding = util::toDims(args[3].unwrapToIntList());
   auto stride = util::toDims(args[2].unwrapToIntList());
-  if (args[2].unwrapToIntList().size() == 0) {
+  if (stride.nbDims == 0) {
     LOG_DEBUG("Stride not providied, using kernel_size as stride");
     stride = util::toDims(args[1].unwrapToIntList());
-  }
-
-  if (kernel_size.nbDims == 1) {
-    kernel_size = util::unsqueezeDims(kernel_size, 0, 1);
-    padding = util::unsqueezeDims(padding, 0, 0);
-    stride = util::unsqueezeDims(stride, 0, 1);
   }
 
   LOG_DEBUG("kernel_size: " << kernel_size);
   LOG_DEBUG("padding: " << padding);
   LOG_DEBUG("stride: " << stride);
+  
+  if (kernel_size.nbDims == 1) {
+    kernel_size = util::unsqueezeDims(kernel_size, 0, 1);
+    padding = util::unsqueezeDims(padding, 0, 0);
+    stride = util::unsqueezeDims(stride, 0, 1);
+    LOG_DEBUG("kernel_size.nbDims < 2, padding sizes:" << kernel_size);
+    LOG_DEBUG("kernel_size: " << kernel_size);
+    LOG_DEBUG("padding: " << padding);
+    LOG_DEBUG("stride: " << stride);
+  }
+
 
   bool ceil_mode;
   nvinfer1::IPoolingLayer* new_layer;
@@ -132,9 +137,9 @@ bool PoolingConverter(ConversionCtx* ctx, const torch::jit::Node* n, args& args,
     new_layer = ctx->net->addPoolingNd(*in, nvinfer1::PoolingType::kAVERAGE, kernel_size);
     TRTORCH_CHECK(new_layer, "Unable to create Avg Pooling layer from node: " << *n);
     new_layer->setAverageCountExcludesPadding(!count_inlcude_pad);
-    if (!(args[6].IValue()->isNone())) {
-      LOG_WARNING("Divisor override is now handled by Avg Pooling Converter");
-    }
+    // if (!(args[6].IValue()->isNone())) {
+    //  LOG_WARNING("Divisor override is now handled by Avg Pooling Converter");
+    // }
   } else {
     TRTORCH_ASSERT(0, "Unsupported pool mode: " + pool_mode);
   }
