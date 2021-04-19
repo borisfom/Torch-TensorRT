@@ -41,7 +41,7 @@ auto batch_norm_registrations TRTORCH_UNUSED = RegisterNodeConversionPatterns().
       LOG_DEBUG("training disregarded");
       LOG_DEBUG("cudnn disregarded");
 
-      auto expandDims = util::padTensorDim(ctx, n, input, 4);
+      auto expandDims = addPaddingLayer(ctx, n, input, 4);
       if (expandDims) {
         input = expandDims->getOutput(0);
       }
@@ -60,8 +60,7 @@ auto batch_norm_registrations TRTORCH_UNUSED = RegisterNodeConversionPatterns().
 
       if (expandDims) {
         LOG_DEBUG("Inserting shuffle layer to reshape to back to original shape: " << orig_shape);
-        auto new_layer = util::unpadTensorDim(ctx, n, out_tensor, orig_shape.nbDims);
-        assert(new_layer);
+        auto new_layer = addUnpaddingLayer(ctx, n, out_tensor, orig_shape.nbDims);
         out_tensor = new_layer->getOutput(0);
       }
       ctx->AssociateValueAndTensor(n->outputs()[0], out_tensor);

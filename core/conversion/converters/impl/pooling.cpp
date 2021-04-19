@@ -12,18 +12,18 @@ namespace {
 
 bool AdaptiveAvgPoolingConverter(ConversionCtx* ctx, const torch::jit::Node* n, args& args) {
   auto in = args[0].ITensorOrFreeze(ctx);
-  auto out_size = util::toVec(util::toDims(args[1].unwrapToIntList()));
+  auto out_size = util::toDims(args[1].unwrapToIntList());
   bool shuffle_back = false;
-  auto shuffle = util::padTensorDim(ctx, n, in, 4, true, true);
+
+  auto shuffle = addPaddingLayer(ctx, n, in, 4, false, false);
   if (shuffle) {
     in = shuffle->getOutput(0);
   }
 
-  if (out_size.size() == 1) {
+  if (out_size.nbDims == 1) {
+    out_size = util::unsqueezeDims(out_size, 0, 1);
     shuffle_back = true;
-    out_size.push_back(1);
   }
-
   auto in_shape = util::toVec(in->getDimensions());
   nvinfer1::ILayer* new_layer = nullptr;
 
@@ -37,26 +37,26 @@ bool AdaptiveAvgPoolingConverter(ConversionCtx* ctx, const torch::jit::Node* n, 
 #endif
 
     auto out_shape = in_shape;
-    std::copy(out_size.begin(), out_size.end(), out_shape.begin() + (in_shape.size() - out_size.size()));
+    std::copy_n(out_size.d, out_size.nbDims, out_shape.begin() + (in_shape.size() - out_size.nbDims));
 
     auto creator = new plugins::InterpolatePluginCreator();
-    auto plugin = creator->createPlugin(
-        "adaptive_pool2d", in_shape, out_shape, out_size, {}, std::string("adaptive_pool2d"), false, false);
+    auto plugin = creator->createPlugin("adaptive_pool2d", in_shape, out_shape,
+					util::toVec(out_size), {}, std::string("adaptive_pool2d"), false, false);
 
     new_layer = ctx->net->addPluginV2(reinterpret_cast<nvinfer1::ITensor* const*>(&in), 1, *plugin);
     TRTORCH_CHECK(new_layer, "Unable to create pooling (interpolation) plugin from node" << *n);
 
   } else {
-    std::vector<int64_t> stride(out_size.size());
-    for (size_t i = 0; i < out_size.size(); i++) {
-      stride[(stride.size() - 1) - i] = in_shape[(in_shape.size() - 1) - i] / out_size[(out_size.size() - 1) - i];
+    std::vector<int64_t> stride(out_size.nbDims);
+    for (size_t i = 0; i < out_size.nbDims; i++) {
+      stride[(stride.size() - 1) - i] = in_shape[(in_shape.size() - 1) - i] / out_size.d[(out_size.nbDims - 1) - i];
     }
     LOG_DEBUG("Stride: " << util::toDims(stride));
 
-    std::vector<int64_t> window(out_size.size());
-    for (size_t i = 0; i < out_size.size(); i++) {
+    std::vector<int64_t> window(out_size.nbDims);
+    for (size_t i = 0; i < out_size.nbDims; i++) {
       window[window.size() - 1 - i] =
-          in_shape[in_shape.size() - 1 - i] - (out_size[out_size.size() - 1 - i] - 1) * stride[stride.size() - 1 - i];
+          in_shape[in_shape.size() - 1 - i] - (out_size.d[out_size.nbDims - 1 - i] - 1) * stride[stride.size() - 1 - i];
     }
 
     LOG_DEBUG("Window: " << util::toDims(window));
@@ -69,9 +69,8 @@ bool AdaptiveAvgPoolingConverter(ConversionCtx* ctx, const torch::jit::Node* n, 
 
   new_layer->setName(util::node_info(n).c_str());
 
-  if (shuffle_back) {
-    new_layer = util::unpadTensorDim(ctx, n, new_layer->getOutput(0), 3, true, true);
-    assert(new_layer);
+  if (shuffle_back ) {
+    new_layer = addUnpaddingLayer(ctx, n, new_layer->getOutput(0), 3, false, false);
   }
 
   auto layer_output = ctx->AssociateValueAndTensor(n->outputs()[0], new_layer->getOutput(0));
@@ -85,7 +84,7 @@ bool PoolingConverter(ConversionCtx* ctx, const torch::jit::Node* n, args& args,
   auto shape = util::toVec(in->getDimensions());
 
   // Max Pool needs at least 4D input
-  auto shuffle = util::padTensorDim(ctx, n, in, 4, false, false);
+  auto shuffle = addPaddingLayer(ctx, n, in, 4, false);
 
   if (shuffle) {
     in = shuffle->getOutput(0);
@@ -99,19 +98,20 @@ bool PoolingConverter(ConversionCtx* ctx, const torch::jit::Node* n, args& args,
     stride = util::toDims(args[1].unwrapToIntList());
   }
 
+  if (kernel_size.nbDims == 1) {
+    kernel_size = util::unsqueezeDims(kernel_size, 0, 1);
+    LOG_DEBUG("kernel_size.nbDims < 2, padding:" << kernel_size);
+    LOG_DEBUG("kernel_size: " << kernel_size);
+  }
+  if (padding.nbDims == 1)
+    padding = util::unsqueezeDims(padding, 0, 0); 
+  if (stride.nbDims == 1)
+    stride = util::unsqueezeDims(stride, 0, 1);
+
   LOG_DEBUG("kernel_size: " << kernel_size);
   LOG_DEBUG("padding: " << padding);
   LOG_DEBUG("stride: " << stride);
   
-  if (kernel_size.nbDims == 1) {
-    kernel_size = util::unsqueezeDims(kernel_size, 0, 1);
-    padding = util::unsqueezeDims(padding, 0, 0);
-    stride = util::unsqueezeDims(stride, 0, 1);
-    LOG_DEBUG("kernel_size.nbDims < 2, padding sizes:" << kernel_size);
-    LOG_DEBUG("kernel_size: " << kernel_size);
-    LOG_DEBUG("padding: " << padding);
-    LOG_DEBUG("stride: " << stride);
-  }
 
 
   bool ceil_mode;

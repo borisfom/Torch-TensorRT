@@ -25,16 +25,12 @@ bool add_conv_deconv(ConversionCtx* ctx, const torch::jit::Node* n, args& args) 
   LOG_DEBUG("Original input dims: " << orig_dims);
 
   // Expand spatial dims from 1D to 2D if needed
-  auto expandDims = util::padTensorDim(ctx, n, in, 4);
+  auto expandDims = addPaddingLayer(ctx, n, in, 4);
   if (expandDims) {
     auto tensorPtr = expandDims->getOutput(0);
     assert(tensorPtr);
     dims = tensorPtr->getDimensions();
     in = tensorPtr;
-    stride = util::unsqueezeDims(stride, 1, 1);
-    dilation = util::unsqueezeDims(dilation, 1, 1);
-    padding = util::unsqueezeDims(padding, 1, 0);
-    out_padding = util::unsqueezeDims(out_padding, 1, 0);
   }
   if (w.shape.nbDims < 4) {
     for (int i = w.shape.nbDims; i < 4; ++i)
@@ -43,6 +39,15 @@ bool add_conv_deconv(ConversionCtx* ctx, const torch::jit::Node* n, args& args) 
     w.kernel_shape.nbDims = 2;
     w.kernel_shape.d[1] = 1;
   }
+  if (stride.nbDims==1)
+    stride = util::unsqueezeDims(stride, 1, 1);
+  if (dilation.nbDims==1)
+    dilation = util::unsqueezeDims(dilation, 1, 1);
+  if (padding.nbDims==1)  
+    padding = util::unsqueezeDims(padding, 1, 0);
+  if (out_padding.nbDims==1)
+    out_padding = util::unsqueezeDims(out_padding, 1, 0);
+
   LOG_DEBUG("Input dims: " << dims);
   LOG_DEBUG("Weights: " << w);
   LOG_DEBUG("stride: " << stride);
@@ -50,10 +55,6 @@ bool add_conv_deconv(ConversionCtx* ctx, const torch::jit::Node* n, args& args) 
   LOG_DEBUG("dilation: " << dilation);
   LOG_DEBUG("out_padding: " << out_padding);
   LOG_DEBUG("groups: " << groups);
-
-  const int nbSpatialDims = dims.nbDims - 2;
-  // Check that the number of spatial dimensions and the kernel shape matches up.
-  assert(nbSpatialDims == w.shape.nbDims - 2);
 
   nvinfer1::ILayer* new_layer;
   if (transposed) {
@@ -104,9 +105,7 @@ bool add_conv_deconv(ConversionCtx* ctx, const torch::jit::Node* n, args& args) 
 
   if (expandDims) {
     // Un-expand spatial dims back to 1D
-    auto unpad_layer = util::unpadTensorDim(ctx, n, new_layer->getOutput(0), orig_dims.nbDims);
-    if (unpad_layer)
-      new_layer = unpad_layer;
+    new_layer = addUnpaddingLayer(ctx, n, new_layer->getOutput(0), orig_dims.nbDims);
   }
 
   auto out = ctx->AssociateValueAndTensor(n->outputs()[0], new_layer->getOutput(0));

@@ -12,11 +12,8 @@ namespace trtorch {
 namespace core {
 namespace conversion {
 namespace converters {
-namespace util {
-using namespace core::util;
-nvinfer1::ILayer* padTensorDim(ConversionCtx* ctx, const torch::jit::Node* n, nvinfer1::ITensor* tensor, int dim, bool trailing=true, bool use_zeros=true);
-nvinfer1::ILayer* unpadTensorDim(ConversionCtx* ctx, const torch::jit::Node* n, nvinfer1::ITensor* tensor, int dim, bool trailing=true, bool use_zeros=true);
-} // namespace util
+nvinfer1::ILayer* addPaddingLayer(ConversionCtx* ctx, const torch::jit::Node* n, nvinfer1::ITensor* tensor, int nDim, bool trailing=true, bool use_zeros=true);
+nvinfer1::ILayer* addUnpaddingLayer(ConversionCtx* ctx, const torch::jit::Node* n, nvinfer1::ITensor* tensor, int nDim, bool trailing=true, bool use_zeros=true);
 } // namespace converters
 } // namespace conversion
 } // namespace core
