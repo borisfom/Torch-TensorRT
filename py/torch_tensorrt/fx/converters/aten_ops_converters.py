@@ -24,7 +24,7 @@ from .converter_utils import *  # noqa: F403
 import torch_tensorrt.fx.tracer.acc_tracer.acc_utils as acc_utils
 from torch_tensorrt.fx.converters.impl import activation
 from torch_tensorrt.fx.converters.impl.elementwise import trunc_div
-from torch_tensorrt.fx.converters.impl.slice import slice
+from torch_tensorrt.fx.converters.impl.slice import slice_op
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
 
@@ -473,7 +473,7 @@ def aten_ops_slice(
     kwargs: Dict[str, Argument],
     name: str,
 ) -> Union[TRTTensor, Sequence[TRTTensor]]:
-    return slice(
+    return slice_op(
         network,
         target,
         SourceIR.ATEN,
