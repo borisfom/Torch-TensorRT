@@ -438,20 +438,7 @@ def aten_ops_select(
     kwargs: Dict[str, Argument],
     name: str,
 ) -> Union[TRTTensor, Sequence[TRTTensor]]:
-    kwargs_new = {
-        "input": args[0],
-        "dim": args[1],
-        "index": args[2],
-    }
-    return select(
-        network, 
-        target,
-        SourceIR.ATEN,
-        name,
-        args[0],
-        args[1],
-        args[2]
-    )
+    return select(network, target, SourceIR.ATEN, name, args[0], args[1], args[2])
 
 
 @tensorrt_converter(operator.sub)

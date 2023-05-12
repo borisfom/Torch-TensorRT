@@ -14,9 +14,9 @@ from torch_tensorrt.fx.converters.converter_utils import (
     SourceIR,
     get_positive_dim,
     has_dynamic_shape,
-    get_shape_with_dynamic_shape,
     to_numpy,
 )
+from torch_tensorrt.fx.converters.impl.shape import get_shape_with_dynamic_shape
 
 
 def select(
@@ -46,9 +46,7 @@ def select(
     else:
         if dynamic_shape:
             # Check whether slice target dim is dynamic shape dim
-            assert (
-                input.shape[dim] != -1
-            ), "Can't select on negative shape dimension!"
+            assert input.shape[dim] != -1, "Can't select on negative shape dimension!"
     index = index
 
     if index >= input.shape[dim]:
@@ -59,7 +57,7 @@ def select(
     output_shape[dim] = 1
     if dynamic_shape > 0:
         output_shape = get_shape_with_dynamic_shape(
-            network, output_shape, input, target, name
+            network, target, source_ir, name, output_shape, input
         )
     index_value = torch.tensor(index, dtype=torch.int32)
     indices_tensor = network.add_constant(
