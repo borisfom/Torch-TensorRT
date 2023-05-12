@@ -27,10 +27,10 @@ def slice_op(
     source_ir: Optional[SourceIR],
     name: str,
     input: TRTTensor,
+    dim: int,
     start: int,
     stop: int,
     step: int,
-    dim: int,
 ) -> TRTTensor:
     if not isinstance(input, TRTTensor):
         raise RuntimeError(
@@ -51,7 +51,6 @@ def slice_op(
         if dynamic_shape:
             # Check whether slice target dim is dynamic shape dim
             assert input.shape[dim] != -1, "Can't chunk on dynamic shape dimension!"
-
     start_int = cast(int, start)
     stop_int = cast(int, stop)
     step_int = cast(int, step)
