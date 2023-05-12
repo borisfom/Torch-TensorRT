@@ -15,9 +15,8 @@ from torch_tensorrt.fx.converters.converter_utils import (
     set_layer_name,
 )
 
-from torch_tensorrt.fx.converters.impl.shape import (
-    get_shape_with_dynamic_shape
-)
+from torch_tensorrt.fx.converters.impl.shape import get_shape_with_dynamic_shape
+
 
 def slice(
     network: TRTNetwork,
@@ -32,12 +31,7 @@ def slice(
     dynamic_shape = has_dynamic_shape(input.shape)
     if dynamic_shape:
         shape = get_shape_with_dynamic_shape(
-            network,
-            target,
-            source_ir,
-            name,
-            shape,
-            input
+            network, target, source_ir, name, shape, input
         )
     layer = network.add_slice(
         input,

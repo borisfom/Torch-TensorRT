@@ -482,7 +482,7 @@ def aten_ops_slice(
         args[1],
         args[2],
         args[3],
-        args[4]
+        args[4],
     )
 
 

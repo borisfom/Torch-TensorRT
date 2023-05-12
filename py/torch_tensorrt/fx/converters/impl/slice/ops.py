@@ -17,12 +17,9 @@ from torch_tensorrt.fx.converters.converter_utils import (
     get_positive_dim,
     has_dynamic_shape,
 )
-from torch_tensorrt.fx.converters.impl.shape import (
-    get_shape_with_dynamic_shape
-)
-from torch_tensorrt.fx.converters.impl.slice import (
-    slice
-)
+from torch_tensorrt.fx.converters.impl.shape import get_shape_with_dynamic_shape
+from torch_tensorrt.fx.converters.impl.slice.base import slice
+
 
 def slice_op(
     network: TRTNetwork,
@@ -65,14 +62,4 @@ def slice_op(
     output_shape = list(input.shape)
     output_shape[dim] = math.ceil((stop_int - start_int) / step_int)
 
-    return slice(
-        network,
-        target,
-        source_ir,
-        name,
-        input,
-        start,
-        output_shape,
-        stride
-    )
-
+    return slice(network, target, source_ir, name, input, start, output_shape, stride)
