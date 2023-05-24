@@ -5,6 +5,7 @@ from packaging import version
 # @manual=//deeplearning/trt/python:py_tensorrt
 import tensorrt as trt
 import torch
+import logging
 from functorch import make_fx
 from functorch.experimental import functionalize
 from torch_tensorrt.fx.passes.lower_basic_pass import (
@@ -13,6 +14,9 @@ from torch_tensorrt.fx.passes.lower_basic_pass import (
 )
 
 from .types import Shape, TRTDataType
+
+
+_LOGGER: logging.Logger = logging.getLogger(__name__)
 
 
 class LowerPrecision(Enum):
@@ -35,7 +39,9 @@ class LowerPrecision(Enum):
             return None
 
 
-def torch_dtype_to_trt(dtype: torch.dtype) -> TRTDataType:
+def torch_dtype_to_trt(
+    dtype: torch.dtype, truncate_long_and_double: bool = False
+) -> TRTDataType:
     """
     Convert PyTorch data types to TensorRT data types.
 
@@ -51,10 +57,32 @@ def torch_dtype_to_trt(dtype: torch.dtype) -> TRTDataType:
         return trt.int8
     elif dtype == torch.int32:
         return trt.int32
+    elif dtype == torch.int64:
+        if truncate_long_and_double:
+            _LOGGER.warn(
+                "Detected Int64 Input, Casting to Int32 for TRT Engine Compatibility"
+            )
+            return trt.int32
+        else:
+            raise TypeError(
+                "Detected Int64 Input which is not supported by tensorrt, enable compilation"
+                + "option truncate_long_and_double=True to cast input to Int32 for TRT Engine"
+            )
     elif dtype == torch.float16:
         return trt.float16
     elif dtype == torch.float32:
         return trt.float32
+    elif dtype == torch.float64:
+        if truncate_long_and_double:
+            _LOGGER.warn(
+                "Detected Float64 Input, Casting to Float32 for TRT Engine Compatibility"
+            )
+            return trt.float32
+        else:
+            raise TypeError(
+                "Detected Float64 Input which is not supported by tensorrt, enable compilation"
+                + "option truncate_long_and_double=True to cast input to Float32 for TRT Engine"
+            )
     else:
         raise TypeError("%s is not supported by tensorrt" % dtype)
 
