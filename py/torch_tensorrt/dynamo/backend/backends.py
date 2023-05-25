@@ -121,9 +121,7 @@ def _compile_module(
         trt_mod = convert_module(
             submodule,
             submodule_inputs,
-            debug=settings.debug,
-            workspace_size=settings.workspace_size,
-            precision=settings.precision,
+            settings=settings,
         )
 
         # Replace FX Module with TRT Module
