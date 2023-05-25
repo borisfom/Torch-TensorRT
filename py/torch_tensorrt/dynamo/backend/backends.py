@@ -52,6 +52,7 @@ def aot_torch_tensorrt_aten_backend(
     )
 
 
+@fake_tensor_unsupported
 def _pretraced_backend(
     gm: torch.fx.GraphModule,
     sample_inputs: Sequence[torch.Tensor],
