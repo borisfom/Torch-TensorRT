@@ -8,6 +8,7 @@ from torch_tensorrt.dynamo.backend._defaults import (
     MAX_WORKSPACE_SIZE,
     MIN_BLOCK_SIZE,
     TRUNCATE_LONG_AND_DOUBLE,
+    PASS_THROUGH_BUILD_FAILURES,
 )
 
 
@@ -19,3 +20,4 @@ class CompilationSettings:
     min_block_size: int = MIN_BLOCK_SIZE
     torch_executed_ops: Sequence[str] = field(default_factory=set)
     truncate_long_and_double: bool = TRUNCATE_LONG_AND_DOUBLE
+    pass_through_build_failures: bool = PASS_THROUGH_BUILD_FAILURES
