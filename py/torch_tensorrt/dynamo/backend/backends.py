@@ -8,6 +8,9 @@ from torch_tensorrt.dynamo.backend._settings import CompilationSettings
 from torch_tensorrt.dynamo.backend.lowering._decompositions import (
     get_decompositions,
 )
+from torch_tensorrt.dynamo.backend.lowering._pre_aot_lowering import (
+    pre_aot_substitutions,
+)
 from torch_tensorrt.dynamo.backend.lowering._partition import (
     partition,
     get_submod_inputs,
@@ -48,6 +51,13 @@ def aot_torch_tensorrt_aten_backend(
         settings=settings,
     )
 
+    logger.debug("Pre-module replacement graph:\n" + str(gm.graph))
+
+    # Enable Pre-AOT Lowering for Module-Level Replacement
+    gm = pre_aot_substitutions(gm)
+
+    logger.debug("Post-module replacement graph:\n" + str(gm.graph))
+
     # Invoke AOTAutograd to translate operators to aten
     return aot_module_simplified(
         gm,
@@ -73,6 +83,8 @@ def _pretraced_backend(
         Compiled FX GraphModule
     """
     try:
+        logger.debug("Post-AOT Autograd graph:\n" + str(gm.graph))
+
         trt_compiled = _compile_module(
             gm,
             sample_inputs,
