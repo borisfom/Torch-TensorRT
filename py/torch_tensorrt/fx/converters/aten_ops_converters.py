@@ -22,13 +22,15 @@ from ..utils import get_dynamic_dims, torch_dtype_from_trt, torch_dtype_to_trt
 
 from .converter_utils import *  # noqa: F403
 import torch_tensorrt.fx.tracer.acc_tracer.acc_utils as acc_utils
-from torch_tensorrt.fx.converters.impl import activation, shuffle
 from torch_tensorrt.fx.converters.impl.elementwise import trunc_div, rsqrt, clamp
 
 
 def or_none(args, i):
     return args[i] if len(args) > i else None
 
+from torch_tensorrt.fx.converters.impl import activation
+from torch_tensorrt.fx.converters.impl.elementwise import trunc_div
+from torch_tensorrt.fx.converters.impl.select import select
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
 
@@ -360,7 +362,6 @@ def aten_ops_relu(
         args[0],
     )
 
-
 @tensorrt_converter(torch.ops.aten.relu.default)
 def aten_ops_relu(
     network: TRTNetwork,
@@ -395,7 +396,6 @@ def aten_ops_rsqrt(
         name,
         args[0],
     )
-
 
 @tensorrt_converter(torch.ops.aten.sub.Tensor)
 def aten_ops_sub(
@@ -608,6 +608,17 @@ def aten_ops_operator_add(
         "other": args[1],
     }
     return acc_ops_converters.acc_ops_add(network, target, None, kwargs_new, name)
+
+
+@tensorrt_converter(torch.ops.aten.select.int)
+def aten_ops_select(
+    network: TRTNetwork,
+    target: Target,
+    args: Tuple[Argument, ...],
+    kwargs: Dict[str, Argument],
+    name: str,
+) -> Union[TRTTensor, Sequence[TRTTensor]]:
+    return select(network, target, SourceIR.ATEN, name, args[0], args[1], args[2])
 
 
 @tensorrt_converter(operator.sub)

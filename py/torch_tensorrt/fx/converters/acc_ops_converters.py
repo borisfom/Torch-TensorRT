@@ -28,15 +28,23 @@ from torch_tensorrt.fx.passes.lower_basic_pass import (
 from torch_tensorrt.fx.tracer.acc_tracer.acc_ops import contiguous
 from torch_tensorrt.fx.converters.impl import activation
 from torch_tensorrt.fx.converters.impl.elementwise import trunc_div
+<<<<<<< HEAD
 from torch_tensorrt.fx.converters.impl.elementwise import clamp
+=======
+>>>>>>> upstream/converter_reorg_select
 from torch_tensorrt.fx.converters.impl.unary import sign
 from torch_tensorrt.fx.converters.impl.elementwise.base import (
     convert_binary_elementwise,
 )
+<<<<<<< HEAD
 from torch_tensorrt.fx.converters.impl import einsum
 from torch_tensorrt.fx.converters.impl.unary.base import convert_unary
 from torch_tensorrt.fx.converters.impl.shape import get_shape_with_dynamic_shape
 from torch_tensorrt.fx.converters.impl import shuffle
+=======
+from torch_tensorrt.fx.converters.impl.unary.base import convert_unary
+from torch_tensorrt.fx.converters.impl.shape import get_shape_with_dynamic_shape
+>>>>>>> upstream/converter_reorg_select
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
 
@@ -1237,12 +1245,15 @@ def acc_ops_tanh(
     kwargs: Dict[str, Argument],
     name: str,
 ) -> Union[TRTTensor, Sequence[TRTTensor]]:
-    return activation.tanh(
+    input_val = kwargs["input"]
+    operation_type = trt.ActivationType.TANH
+    return activation.convert_activation(
         network,
         target,
         SourceIR.ACC,
         name,
-        kwargs["input"],
+        operation_type,
+        input_val,
     )
 
 
@@ -3346,12 +3357,19 @@ def acc_ops_sigmoid(
     name: str,
 ) -> Union[TRTTensor, Sequence[TRTTensor]]:
 
-    return activation.sigmoid(
+    if not isinstance(input_val, TRTTensor):
+        raise RuntimeError(
+            f"Sigmoid received input {input_val} that is not part "
+            "of the TensorRT region!"
+        )
+
+    return activation.convert_activation(
         network,
         target,
         SourceIR.ACC,
         name,
-        kwargs["input"],
+        trt.ActivationType.SIGMOID,
+        input_val,
     )
 
 
@@ -3726,14 +3744,21 @@ def acc_ops_hardtanh(
     name: str,
 ) -> Union[TRTTensor, Sequence[TRTTensor]]:
 
-    return activation.hardtanh(
+    if not isinstance(input_val, TRTTensor):
+        raise RuntimeError(
+            f"hardtanh received input {input_val} that is not part "
+            "of the TensorRT region!"
+        )
+
+    return activation.convert_activation(
         network,
         target,
         SourceIR.ACC,
         name,
-        kwargs["input"],
-        kwargs["min_val"],
-        kwargs["max_val"],
+        trt.ActivationType.CLIP,
+        input_val,
+        alpha=kwargs["min_val"],
+        beta=kwargs["max_val"],
     )
 
 

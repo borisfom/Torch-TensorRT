@@ -110,7 +110,6 @@ def trunc_div(
 
     return output
 
-
 def rsqrt(
     network: TRTNetwork,
     target: Target,
@@ -139,3 +138,4 @@ def rsqrt(
     )
 
     return output
+

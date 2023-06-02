@@ -23,7 +23,6 @@ def relu(network, submod, args, kwargs, layer_name):
         input_val=kwargs["input"],
     )
 
-
 @tensorrt_converter(torch.nn.modules.activation.Sigmoid)
 def sigmoid(network, submod, args, kwargs, layer_name):
     # args/kwargs should have already been normalized to kwargs
@@ -82,3 +81,4 @@ def leaky_relu(network, submod, args, kwargs, layer_name):
         input_val=kwargs["input"],
         alpha=kwargs["negative_slope"],
     )
+

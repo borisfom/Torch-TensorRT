@@ -68,7 +68,6 @@ def convert_activation(
         mark_as_int8_layer(layer, dyn_range)
     return layer.get_output(0)
 
-
 def hardtanh(
     network: TRTNetwork,
     target: Target,
@@ -121,6 +120,7 @@ def relu(
         input_val,
         dyn_range_fn=relu_dyn_range_fn,
     )
+<<<<<<< HEAD
 
 
 def sigmoid(
@@ -202,3 +202,5 @@ def leaky_relu(
         alpha,
         dyn_range_fn=leaky_relu_dyn_range_fn,
     )
+=======
+>>>>>>> upstream/converter_reorg_select
