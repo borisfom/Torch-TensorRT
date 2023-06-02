@@ -1,6 +1,7 @@
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Optional
 import torch
-from torch._custom_op import custom_op
+from torch import Tensor
+from torch._custom_op.impl import custom_op
 from torch.fx.node import Argument, Target
 
 from torch_tensorrt.fx.converter_registry import tensorrt_converter
@@ -9,12 +10,12 @@ from torch_tensorrt.fx.types import TRTNetwork, TRTTensor
 
 from torch_tensorrt.dynamo.backend.lowering import register_substitution
 
-
 @custom_op(
-    "(Tensor x, int[1] kernel_size, int[1] stride=[], int[1] padding=[], int[1] dilation=[], bool ceil_mode=False) -> Tensor",
-    ns="tensorrt",
-)
-def maxpool1d(x, kernel_size, stride=None, padding=0, dilation=1, ceil_mode=False):
+        qualname="tensorrt::maxpool1d",
+        manual_schema="(Tensor x, int[1] kernel_size, int[1] stride, int[1] padding, int[1] dilation, bool ceil_mode) -> Tensor",
+    )
+def maxpool1d(x, kernel_size, stride, padding, dilation, ceil_mode):
+    # def maxpool1d(x:Tensor, kernel_size: int[1], stride:Optional[int[1]], padding:Optional[int[1]], dilation:Optional[int[1]], ceil_mode:bool):
     # Defines operator schema, name, namespace, and function header
     ...
 

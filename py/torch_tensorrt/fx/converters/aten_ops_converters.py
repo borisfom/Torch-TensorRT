@@ -549,6 +549,51 @@ def aten_ops_operator_mul(
     }
     return acc_ops_converters.acc_ops_mul(network, target, None, kwargs_new, name)
 
+@tensorrt_converter(torch.ops.aten.embedding.default)
+def aten_ops_embedding(
+    network: TRTNetwork,
+    target: Target,
+    args: Tuple[Argument, ...],
+    kwargs: Dict[str, Argument],
+    name: str,
+) -> Union[TRTTensor, Sequence[TRTTensor]]:
+    
+     indices_tensor = args[0]
+     embedding_tensor = args[1]
+     indices_tensor = get_trt_tensor(network, indices_tensor, f"{name}_indices_tensor")
+     embedding_tensor = get_trt_tensor(
+         network, embedding_tensor, f"{name}_embedding_tensor"
+     )
+
+     # unsupported parameters
+     # ignore padding_idx since it is meaningful for training only
+     max_norm = args[2]
+     norm_type = args[3]
+     scale_grad_by_freq = kwargs[4]
+     sparse = args[5]
+
+     if max_norm is not None:
+         raise RuntimeError(
+             f"Currently we don't support specifying max_norm, got {max_norm}."
+         )
+
+     if norm_type != 2.0:
+         raise RuntimeError(
+             f"Currently we don't support specifying max_norm, got {norm_type} for norm_type."
+         )
+
+     if scale_grad_by_freq:
+         raise RuntimeError(
+             "Currently we don't support scale gradient by word frequency."
+         )
+
+     if sparse:
+         raise RuntimeError("Currently we don't support sparse gradient.")
+
+     # Implement embedding lookup with gather layer
+     gather_layer = network.add_gather(embedding_tensor, indices_tensor, axis=0)
+     set_layer_name(gather_layer, target, name + "_gather")
+     return gather_layer.get_output(0)
 
 @tensorrt_converter(operator.add)
 def aten_ops_operator_add(

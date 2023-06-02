@@ -1,6 +1,6 @@
 from typing import Dict, Tuple
 import torch
-from torch._custom_op import custom_op
+from torch._custom_op.impl import custom_op
 from torch.fx.node import Argument, Target
 
 from torch_tensorrt.fx.converter_registry import tensorrt_converter
@@ -9,10 +9,9 @@ from torch_tensorrt.fx.types import TRTNetwork, TRTTensor
 
 from torch_tensorrt.dynamo.backend.lowering import register_substitution
 
-
 @custom_op(
-    "(str equation, Tensor[] tensors) -> Tensor",
-    ns="tensorrt",
+    qualname="tensorrt::einsum",
+    manual_schema="(str equation, Tensor[] tensors) -> Tensor",
 )
 def einsum(equation, tensors):
     # Defines operator schema, name, namespace, and function header
