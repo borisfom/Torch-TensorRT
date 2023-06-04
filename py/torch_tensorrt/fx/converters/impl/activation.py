@@ -120,8 +120,6 @@ def relu(
         input_val,
         dyn_range_fn=relu_dyn_range_fn,
     )
-<<<<<<< HEAD
-
 
 def sigmoid(
     network: TRTNetwork,
@@ -202,5 +200,3 @@ def leaky_relu(
         alpha,
         dyn_range_fn=leaky_relu_dyn_range_fn,
     )
-=======
->>>>>>> upstream/converter_reorg_select

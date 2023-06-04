@@ -28,23 +28,15 @@ from torch_tensorrt.fx.passes.lower_basic_pass import (
 from torch_tensorrt.fx.tracer.acc_tracer.acc_ops import contiguous
 from torch_tensorrt.fx.converters.impl import activation
 from torch_tensorrt.fx.converters.impl.elementwise import trunc_div
-<<<<<<< HEAD
 from torch_tensorrt.fx.converters.impl.elementwise import clamp
-=======
->>>>>>> upstream/converter_reorg_select
 from torch_tensorrt.fx.converters.impl.unary import sign
 from torch_tensorrt.fx.converters.impl.elementwise.base import (
     convert_binary_elementwise,
 )
-<<<<<<< HEAD
 from torch_tensorrt.fx.converters.impl import einsum
 from torch_tensorrt.fx.converters.impl.unary.base import convert_unary
 from torch_tensorrt.fx.converters.impl.shape import get_shape_with_dynamic_shape
 from torch_tensorrt.fx.converters.impl import shuffle
-=======
-from torch_tensorrt.fx.converters.impl.unary.base import convert_unary
-from torch_tensorrt.fx.converters.impl.shape import get_shape_with_dynamic_shape
->>>>>>> upstream/converter_reorg_select
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
 
